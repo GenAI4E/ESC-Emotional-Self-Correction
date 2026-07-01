@@ -26,7 +26,7 @@
   <a href="#-the-question"><b>The Question</b></a> •
   <a href="#-esc-framework"><b>ESC Framework</b></a> •
   <a href="#-results"><b>Results</b></a> •
-  <a href="#-qualitative-results"><b>Qualitative</b></a> •
+  <a href="#%EF%B8%8F-qualitative-results"><b>Qualitative</b></a> •
   <a href="#-quick-start"><b>Quick Start</b></a> •
   <a href="#-citation"><b>Citation</b></a>
 </p>
