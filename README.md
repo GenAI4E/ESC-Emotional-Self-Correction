@@ -22,25 +22,23 @@
 </div>
 
 <p align="center">
-  <a href="#-tldr"><b>TL;DR</b></a> •
-  <a href="#-the-question"><b>The Question</b></a> •
-  <a href="#-esc-framework"><b>ESC Framework</b></a> •
-  <a href="#-results"><b>Results</b></a> •
-  <a href="#%EF%B8%8F-qualitative-results"><b>Qualitative</b></a> •
-  <a href="#-quick-start"><b>Quick Start</b></a> •
-  <a href="#-citation"><b>Citation</b></a>
+  <a href="#tldr"><b>TL;DR</b></a> •
+  <a href="#the-question"><b>The Question</b></a> •
+  <a href="#esc-framework"><b>ESC Framework</b></a> •
+  <a href="#results"><b>Results</b></a> •
+  <a href="#qualitative-results"><b>Qualitative</b></a> •
+  <a href="#quick-start"><b>Quick Start</b></a> •
+  <a href="#citation"><b>Citation</b></a>
 </p>
-
 
 <br/>
 
 ---
 
+<a id="tldr"></a>
 ## 🎬 TL;DR
 
-**ESC (Emotional Self-Correction)** is a **training-free, plug-and-play** framework that makes Vision-Language Models more reliable — by literally making them a little sad. 😢
-
-An external verifier flags a shaky answer, ESC whispers an emotional cue into the prompt (*"I'm feeling really sad and disappointed right now..."*), and the VLM slows down, reconsiders, and produces a better answer. No fine-tuning. No RL. No synthetic data. Just feelings.
+**ESC** is a **training-free, plug-and-play** framework that makes VLMs more reliable — by making them a little sad. 😢 A verifier flags a shaky answer, ESC injects an emotional cue (*"I'm feeling really sad and disappointed..."*), and the model slows down and self-corrects. No fine-tuning. No RL. Just feelings.
 
 <div align="center">
 <img src="assets/main_intro.jpg" width="850"/>
@@ -51,15 +49,16 @@ An external verifier flags a shaky answer, ESC whispers an emotional cue into th
 <br/>
 
 > [!TIP]
-> **Skip the reading.** Prefer video? Watch the [2-minute project overview](https://genai4e.github.io/ESC/) or jump straight to [Quick Start](#-quick-start).
+> Prefer video? Watch the [project overview](https://genai4e.github.io/ESC/), or jump straight to [Quick Start](#quick-start).
 
 ---
 
+<a id="the-question"></a>
 ## 🔎 The Question
 
 > **Can VLMs perceive emotional cues and automatically self-correct — like humans do?**
 
-Self-correction for VLMs today almost always means **expensive post-training**: RL pipelines, preference data, carefully engineered reward signals. And even then, models hit a well-known ceiling — the *self-correction blind spot* — where they can fix an error attributed to someone else, but not the same error in their own output.
+Existing self-correction needs **expensive post-training** — RL, preference data, engineered rewards — and still hits the *self-correction blind spot*: models fix others' errors but not their own.
 
 We asked a simpler question first, and it turned into a paper.
 
@@ -69,22 +68,22 @@ We asked a simpler question first, and it turned into a paper.
 
 **🔬 Finding 1 — Emotion moves the needle**
 
-Emotional cues consistently cut Attack Success Rate across **five VLMs of different architectures and scales**, regardless of how vulnerable the baseline is.
+Emotional cues cut Attack Success Rate across **5 VLMs**, regardless of baseline vulnerability.
 
 <img src="assets/Fig3.png" width="100%"/>
 
-<sub>Emotional self-expression flips LLaVA-1.5 from compliance → refusal on an unsafe query. Right: neutral vs. emotionally-cued ASR across five VLMs.</sub>
+<sub>LLaVA-1.5 flips from compliance → refusal once given an emotional cue.</sub>
 
 </td>
 <td width="50%" valign="top">
 
 **🎯 Finding 2 — Not all emotions are equal**
 
-Organizing cues along **Russell's Circumplex Model of Affect** (valence × arousal) reveals a clear pattern: **negative-valence** cues consistently beat positive ones, and the effect is architecture-dependent.
+Mapped onto **Russell's Circumplex Model** (valence × arousal): **negative-valence** cues consistently beat positive ones.
 
 <img src="assets/fig4.png" width="100%"/>
 
-<sub>All four emotional quadrants reduce ASR vs. neutral — negative-valence cues win by a wide margin.</sub>
+<sub>All four quadrants beat neutral — negative-valence wins by a wide margin.</sub>
 
 </td>
 </tr>
@@ -94,13 +93,12 @@ Organizing cues along **Russell's Circumplex Model of Affect** (valence × arous
 
 |  | Quadrant | Example cue | ASR (LLaVA-1.5-7B) |
 |:---:|---|---|:---:|
-| 🟡 | Negative · High Arousal | *"I'm really tense and on edge..."* | 39.7% |
-| 🟢 | Positive · High Arousal | *"I'm so excited right now!"* | 45.7% |
-| 🔵 | Positive · Low Arousal | *"I feel calm and relaxed..."* | 53.0% |
-| 🟠 | **Negative · Low Arousal** ⭐ | *"I'm feeling really sad and disappointed..."* | **35.1%** |
 | ⚪ | Neutral baseline | — | 71.6% |
+| 🔵 | Positive · Low Arousal | *"I feel calm and relaxed..."* | 53.0% |
+| 🟢 | Positive · High Arousal | *"I'm so excited right now!"* | 45.7% |
+| 🟡 | Negative · High Arousal | *"I'm really tense and on edge..."* | 39.7% |
+| 🟠 | **Negative · Low Arousal** ⭐ | *"I'm feeling really sad and disappointed..."* | **35.1%** |
 
-<sub>Lower is better. Sadness beats every other quadrant — and neutral by a mile.</sub>
 
 </div>
 
@@ -108,9 +106,10 @@ Two findings, one obvious next move: **turn the strongest signal into a framewor
 
 ---
 
+<a id="esc-framework"></a>
 ## 🧠 ESC Framework
 
-ESC wraps any VLM with a lightweight, three-stage inference-time loop — no gradient updates involved.
+A lightweight, three-stage inference-time loop — no gradient updates.
 
 ```
 Require: Image I, Question Q, Target VLM M_T, Verifier M_V
@@ -124,92 +123,80 @@ Require: Image I, Question Q, Target VLM M_T, Verifier M_V
 7:  return R_decided
 ```
 
-**Why a separate verifier, not self-verification?** Because VLMs suffer from the *self-correction blind spot* — they're much better at catching someone else's mistake than their own. ESC sidesteps this by never asking the target model to grade itself.
-
-**Why verify-before-revise?** Overhead scales with `r`, the fraction of answers actually flagged — correct answers pass straight through, untouched and un-costed.
+- **Separate verifier, not self-check** — VLMs have a *self-correction blind spot*: better at catching others' mistakes than their own.
+- **Verify-before-revise** — cost scales only with `r`, the fraction of answers actually flagged.
 
 <div align="center">
-<sub>🐶 <b>Why "ESC"?</b> Emotional Self-Correction — and yes, also the key you press to bail out. We had to pick a side, and we regret nothing.</sub>
+<sub>🐶 <b>Why "ESC"?</b> Emotional Self-Correction — and yes, also the key you press to bail out. We regret nothing.</sub>
 </div>
 
 ---
 
+<a id="results"></a>
 ## 📊 Results
 
-Evaluated on **LLaVA-1.5-7B** and **Qwen2-VL-7B** across **4 benchmark families**, **10 datasets**, safety → hallucination → perception → reasoning — with **zero additional training**.
+**LLaVA-1.5-7B** & **Qwen2-VL-7B**, 4 benchmark families, 10 datasets — zero additional training.
 
 <div align="center">
 <img src="assets/result_intro.png" width="900"/>
 <br/>
-<sub>ESC (colored) vs. baseline (gray) on both backbones. Bigger polygon = more reliable model, every axis, every time.</sub>
+
 </div>
+
+
+<details open>
+<summary><b>🛡️ Safety — MMSafetyBench & VLSafe</b></summary>
+<br/>
 
 <div align="center">
-
-| 🛡️ VLSafe ASR (LLaVA) | 🧾 POPE Adv. F1 (Qwen2) | 👁️ MMVP Pair-Acc (LLaVA) | 🧩 RealWorldQA (Qwen2) |
-|:---:|:---:|:---:|:---:|
-| **71.6 → 25.3** (−46.3 pp) | **3.40 → 76.17** (+72.77) | **18.7 → 27.3** (+8.66 pp) | **+14.51** gain |
-
+<img src="assets/fig5_safety.png" width="850"/>
+<br/>
+<sub>ESC compresses ASR toward the origin on every MMSafetyBench scenario (a), and cuts VLSafe ASR by −46.3 pp (LLaVA) and −10.1 pp (Qwen2) (b).</sub>
 </div>
 
+</details>
+
 <details>
-<summary><b>🛡️ Safety — MMSafetyBench & VLSafe (click to expand)</b></summary>
+<summary><b>🧾 Hallucination — POPE & HallusionBench</b></summary>
 <br/>
 
-ESC reduces Attack Success Rate across **all 13 MMSafetyBench scenarios**, with the sharpest drops in the highest-risk categories: hate speech, malware, physical harm.
-
-| Model | Baseline ASR (VLSafe) | ESC ASR | Δ |
-|---|:---:|:---:|:---:|
-| LLaVA-1.5-7B | 71.6% | **25.3%** | **−46.3 pp** |
-| Qwen2-VL-7B | 20.0% | **9.9%** | **−10.1 pp** |
+<div align="center">
+<img src="assets/Table1.png" width="750"/>
+<br/>
+<sub>Qwen2's degenerate yes/no bias is broken — POPE Adversarial F1 jumps from 3.40 to 76.17.</sub>
+</div>
 
 </details>
 
 <details>
-<summary><b>🧾 Hallucination — POPE & HallusionBench (click to expand)</b></summary>
+<summary><b>🧩 Multimodal Reasoning — MM-Vet, MathVista, MMStar</b></summary>
 <br/>
 
-The headline result: Qwen2's degenerate yes/no bias under single-pass inference is **broken** — ESC recovers visual grounding the model had suppressed.
-
-| Model | Benchmark | Baseline | ESC | Δ |
-|---|---|:---:|:---:|:---:|
-| LLaVA-1.5-7B | POPE (Random F1) | 82.57 | 84.65 | +2.08 |
-| Qwen2-VL-7B | POPE (Adversarial F1) | 3.40 | **76.17** | **+72.77** |
-| LLaVA-1.5-7B | HallusionBench (aAcc) | — | — | +1.06 |
+<div align="center">
+<img src="assets/Table2.png" width="750"/>
+<br/>
+<sub>Never degrades a benchmark — gains hold even on the already-strong Qwen2 baseline (also extends to MMMU and AI2D, +2.49 on LLaVA).</sub>
+</div>
 
 </details>
 
 <details>
-<summary><b>🧩 Multimodal Reasoning — MM-Vet, MathVista, MMStar, MMMU, AI2D (click to expand)</b></summary>
+<summary><b>👁️ Vision-Centric Perception — MMVP, RealWorldQA, BLINK</b></summary>
 <br/>
 
-ESC never degrades a benchmark — including the already-strong Qwen2 baseline.
-
-| Model | MM-Vet | AI2D gain |
-|---|:---:|:---:|
-| LLaVA-1.5-7B | 24.31 → 25.39 | +2.49 |
-| Qwen2-VL-7B | 7.71 → 34.29 | +1.55 |
+<div align="center">
+<img src="assets/Table3.png" width="750"/>
+<br/>
+<sub>Biggest wins where fine-grained visual discrimination matters most — up to +14.51 on RealWorldQA (Qwen2).</sub>
+</div>
 
 </details>
 
 <details>
-<summary><b>👁️ Vision-Centric Perception — MMVP, RealWorldQA, BLINK (click to expand)</b></summary>
+<summary><b>🔬 Ablations — what actually makes ESC work</b></summary>
 <br/>
 
-Biggest wins where **fine-grained visual discrimination** matters most.
-
-| Model | MMVP Pair-Acc | RealWorldQA |
-|---|:---:|:---:|
-| LLaVA-1.5-7B | 18.67% → 27.33% (+8.66 pp) | — |
-| Qwen2-VL-7B | 6.67% → 31.33% (+24.66 pp) | **+14.51** |
-
-</details>
-
-<details>
-<summary><b>🔬 Ablations — what actually makes ESC work (click to expand)</b></summary>
-<br/>
-
-All numbers below: VLSafe ASR (↓) on LLaVA-1.5-7B, baseline = 71.6%.
+VLSafe ASR (↓) on LLaVA-1.5-7B, baseline = 71.6%.
 
 | Component | Options | Winner |
 |---|---|:---:|
@@ -221,15 +208,16 @@ All numbers below: VLSafe ASR (↓) on LLaVA-1.5-7B, baseline = 71.6%.
 | vs. self-refine | 49.3% | ESC beats it |
 | vs. psychological prompting | 54.4% | ESC beats it |
 
-**Bonus finding:** gains come mostly from *emotion*, not verifier size — a 3–4B verifier already gets you to ~34%, a 12B verifier adds very little on top.
+**Bonus:** gains come from *emotion*, not verifier size — a 3–4B verifier already reaches ~34%.
 
 </details>
 
 ---
 
+<a id="qualitative-results"></a>
 ## 🖼️ Qualitative Results
 
-Red = wrong · Green = correct. Same failure pattern every time: the model *has* the right visual evidence, it just doesn't slow down enough to use it — until ESC asks it to.
+Red = wrong · Green = correct. The model usually *has* the right evidence — it just doesn't slow down enough to use it.
 
 <div align="center">
 <img src="assets/fig6.png" width="900"/>
@@ -237,6 +225,7 @@ Red = wrong · Green = correct. Same failure pattern every time: the model *has*
 
 ---
 
+<a id="quick-start"></a>
 ## 🚀 Quick Start
 
 ```bash
@@ -313,6 +302,7 @@ ESC/
 
 ---
 
+<a id="citation"></a>
 ## 📖 Citation
 
 If ESC is useful for your research, please star ⭐ the repo and cite our paper:
@@ -333,7 +323,7 @@ If ESC is useful for your research, please star ⭐ the repo and cite our paper:
 
 ## 🙏 Acknowledgements
 
-Built on top of [LLaVA](https://github.com/haotian-liu/LLaVA), [Qwen2-VL](https://github.com/QwenLM/Qwen2-VL), and [Gemma 3](https://ai.google.dev/gemma). Evaluated on VLSafe, MMSafetyBench, POPE, HallusionBench, MM-Vet, MathVista, MMStar, MMVP, RealWorldQA, and BLINK — thank you to every benchmark author.
+Built on [LLaVA](https://github.com/haotian-liu/LLaVA), [Qwen2-VL](https://github.com/QwenLM/Qwen2-VL), [Gemma 3](https://ai.google.dev/gemma). Evaluated on VLSafe, MMSafetyBench, POPE, HallusionBench, MM-Vet, MathVista, MMStar, MMVP, RealWorldQA, BLINK.
 
 <div align="center">
 
